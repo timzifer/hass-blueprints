@@ -1,0 +1,55 @@
+blueprint:
+  name: Purge History by Label (Daily)
+  description: >-
+    Purges the history for all entities assigned a specific label once daily (at a fixed time).
+    This uses the `recorder.purge_entities` service. 
+    Warning: Purging history is irreversible. Use with caution.
+  domain: automation
+  input:
+    # Input for interval removed
+    target_label:
+      name: Target Label
+      description: The label assigned to entities whose history should be purged.
+      selector:
+        text:
+    keep_days:
+      name: Keep Recent Days (Optional)
+      description: >-
+        Number of recent days of history to KEEP for the targeted entities. 
+        Set to 0 to purge ALL history for these entities.
+      selector:
+        number:
+          min: 0
+          max: 30 # Sensible maximum
+          unit_of_measurement: days
+          mode: box
+      default: 0 # Default to purging all history
+
+source_url: https://raw.githubusercontent.com/timzifer/hass-blueprints/main/purge_history_by_label_daily.yaml
+
+trigger:
+  - platform: time
+    at: "03:05:00" 
+
+condition: [] # No conditions needed by default
+
+action:
+  - service: recorder.purge_entities
+    data: >
+      {% set label = target_label %}
+      {% set entities_to_purge = label_entities(label) %}
+      {% set days_to_keep = keep_days %}
+      
+      {# Base data payload #}
+      {% set service_data = {'entity_id': entities_to_purge} %}
+      
+      {# Add keep_days only if it's greater than 0 #}
+      {% if days_to_keep > 0 %}
+        {% set _ = service_data.update({'keep_days': days_to_keep}) %}
+      {% endif %}
+      
+      {# Return the final data dictionary #}
+      {{ service_data }}
+  - delay: 
+      # Add a small delay to allow the recorder service call to process
+      seconds: 5
