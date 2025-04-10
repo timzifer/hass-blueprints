@@ -34,21 +34,27 @@ condition: [] # No conditions needed by default
 
 action:
   - service: recorder.purge_entities
+    # Schritt 1: Variablen definieren, die an das 'data'-Template übergeben werden
+    variables:
+      # Hole den Wert aus dem Blueprint Input 'target_label'
+      label_to_purge: !input target_label 
+      # Hole den Wert aus dem Blueprint Input 'keep_days'
+      days_to_keep_config: !input keep_days 
+    # Schritt 2: Das 'data'-Template verwendet die oben definierten Variablen
     data: >
-      {% set label = target_label %}
-      {% set entities_to_purge = label_entities(label) %}
-      {% set days_to_keep = keep_days %}
+      {# Nutze die Variable 'label_to_purge' #}
+      {% set entities_to_purge = label_entities(label_to_purge) %}
       
-      {# Base data payload #}
+      {# Basis-Datenstruktur für den Service Call #}
       {% set service_data = {'entity_id': entities_to_purge} %}
       
-      {# Add keep_days only if it's greater than 0 #}
-      {% if days_to_keep > 0 %}
-        {% set _ = service_data.update({'keep_days': days_to_keep}) %}
+      {# Füge 'keep_days' hinzu, wenn der Wert aus der Variable > 0 ist #}
+      {# Nutze die Variable 'days_to_keep_config' #}
+      {% if days_to_keep_config > 0 %}
+        {% set _ = service_data.update({'keep_days': days_to_keep_config}) %}
       {% endif %}
       
-      {# Return the final data dictionary #}
+      {# Gib das finale Daten-Dictionary zurück #}
       {{ service_data }}
   - delay: 
-      # Add a small delay to allow the recorder service call to process
-      seconds: 5
+      seconds: 5 
