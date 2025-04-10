@@ -33,28 +33,35 @@ trigger:
 condition: [] # No conditions needed by default
 
 action:
-  - service: recorder.purge_entities
-    # Schritt 1: Variablen definieren, die an das 'data'-Template übergeben werden
-    variables:
-      # Hole den Wert aus dem Blueprint Input 'target_label'
-      label_to_purge: !input target_label 
-      # Hole den Wert aus dem Blueprint Input 'keep_days'
+  # Schritt 1: Variablen definieren, die in den folgenden Schritten verfügbar sind
+  - variables:
+      # Hole die Inputs aus dem Blueprint
+      label_to_purge: !input target_label
       days_to_keep_config: !input keep_days 
-    # Schritt 2: Das 'data'-Template verwendet die oben definierten Variablen
+      # Ermittle die Entitäten direkt hier
+      entities_to_purge_list: "{{ label_entities(label_to_purge) }}"
+      # Bereite den keep_days Wert vor (Zahl oder None für 'weglassen')
+      keep_days_value: >-
+        {% if days_to_keep_config > 0 %}
+          {{ days_to_keep_config }}
+        {% else %}
+          {{ None }} 
+        {% endif %}
+
+  # Schritt 2: Rufe den eigentlichen Service auf
+  - service: recorder.purge_entities
+    # Das data-Template greift auf die oben definierten Variablen zurück
     data: >
-      {# Nutze die Variable 'label_to_purge' #}
-      {% set entities_to_purge = label_entities(label_to_purge) %}
+      {# Erstelle das Daten-Payload für den Service-Aufruf #}
+      {% set data_payload = {'entity_id': entities_to_purge_list} %}
       
-      {# Basis-Datenstruktur für den Service Call #}
-      {% set service_data = {'entity_id': entities_to_purge} %}
-      
-      {# Füge 'keep_days' hinzu, wenn der Wert aus der Variable > 0 ist #}
-      {# Nutze die Variable 'days_to_keep_config' #}
-      {% if days_to_keep_config > 0 %}
-        {% set _ = service_data.update({'keep_days': days_to_keep_config}) %}
+      {# Füge keep_days nur hinzu, wenn der Wert nicht None ist #}
+      {% if keep_days_value != None %}
+        {% set _ = data_payload.update({'keep_days': keep_days_value}) %}
       {% endif %}
       
-      {# Gib das finale Daten-Dictionary zurück #}
-      {{ service_data }}
+      {{ data_payload }}
+
+  # Schritt 3: Optionaler Delay
   - delay: 
-      seconds: 5 
+      seconds: 5
