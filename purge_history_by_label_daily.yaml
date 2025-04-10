@@ -33,14 +33,11 @@ trigger:
 condition: [] # No conditions needed by default
 
 action:
-  # Schritt 1: Variablen definieren, die in den folgenden Schritten verfügbar sind
+  # Schritt 1: Variablen definieren (bleibt gleich)
   - variables:
-      # Hole die Inputs aus dem Blueprint
       label_to_purge: !input target_label
       days_to_keep_config: !input keep_days 
-      # Ermittle die Entitäten direkt hier
       entities_to_purge_list: "{{ label_entities(label_to_purge) }}"
-      # Bereite den keep_days Wert vor (Zahl oder None für 'weglassen')
       keep_days_value: >-
         {% if days_to_keep_config > 0 %}
           {{ days_to_keep_config }}
@@ -48,20 +45,28 @@ action:
           {{ None }} 
         {% endif %}
 
-  # Schritt 2: Rufe den eigentlichen Service auf
+  # Schritt 2: Service aufrufen mit sicherem data-Template
   - service: recorder.purge_entities
-    # Das data-Template greift auf die oben definierten Variablen zurück
     data: >
-      {# Erstelle das Daten-Payload für den Service-Aufruf #}
-      {% set data_payload = {'entity_id': entities_to_purge_list} %}
-      
-      {# Füge keep_days nur hinzu, wenn der Wert nicht None ist #}
+      {# Dieses Template wird jetzt ausgeführt #}
+      {# Zugriff auf Variablen aus dem vorherigen Schritt #}
       {% if keep_days_value != None %}
-        {% set _ = data_payload.update({'keep_days': keep_days_value}) %}
+        {# Wenn keep_days einen Wert hat (>0), gib das Dictionary MIT keep_days aus #}
+        {{
+          {
+            "entity_id": entities_to_purge_list,
+            "keep_days": keep_days_value
+          }
+        }}
+      {% else %}
+        {# Sonst (keep_days war 0 oder None), gib das Dictionary OHNE keep_days aus #}
+        {{
+          {
+            "entity_id": entities_to_purge_list
+          }
+        }}
       {% endif %}
-      
-      {{ data_payload }}
 
-  # Schritt 3: Optionaler Delay
+  # Schritt 3: Optionaler Delay (bleibt gleich)
   - delay: 
       seconds: 5
