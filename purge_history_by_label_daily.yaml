@@ -4,7 +4,7 @@ blueprint:
     Purges the history for all entities assigned a specific label once daily (at a fixed time).
     This uses the `recorder.purge_entities` service. 
     Warning: Purging history is irreversible. Use with caution.
-  source_url: https://raw.githubusercontent.com/timzifer/hass-blueprints/main/purge_history_by_label_daily.yaml
+  source_url: "https://raw.githubusercontent.com/timzifer/hass-blueprints/main/purge_history_by_label_daily.yaml"
   domain: automation
   input:
     # Input for interval removed
